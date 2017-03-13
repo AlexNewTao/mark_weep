@@ -4,6 +4,7 @@
 #include "storage/containerstore.h"
 #include "utils/lru_cache.h"
 #include "restore.h"
+#include "gc/gc.h"
 
 static void* lru_restore_thread(void *arg) {
 	struct lruCache *cache;
@@ -104,6 +105,58 @@ static void* read_recipe_thread(void *arg) {
 	}
 
 	sync_queue_term(restore_recipe_queue);
+	return NULL;
+}
+
+void* read_recipe_thread_gc() {
+
+	int i, j, k;
+	for (i = 0; i < jcr.bv->number_of_files; i++) {
+		TIMER_DECLARE(1);
+		TIMER_BEGIN(1);
+
+		struct fileRecipeMeta *r = read_next_file_recipe_meta(jcr.bv);
+
+		struct chunk *c = new_chunk(sdslen(r->filename) + 1);
+		strcpy(c->data, r->filename);
+		SET_CHUNK(c, CHUNK_FILE_START);
+
+		TIMER_END(1, jcr.read_recipe_time);
+		free_chunk(c);
+
+//		sync_queue_push(restore_recipe_queue, c);
+
+		for (j = 0; j < r->chunknum; j++) {
+			TIMER_DECLARE(1);
+			TIMER_BEGIN(1);
+
+			struct chunkPointer* cp = read_next_n_chunk_pointers(jcr.bv, 1, &k);
+
+			insert_word(bf,&cp->fp,sizeof(fingerprint));
+
+			number_of_bf_fp++;
+			
+			struct chunk* c = new_chunk(0);
+			memcpy(&c->fp, &cp->fp, sizeof(fingerprint));
+			c->size = cp->size;
+			c->id = cp->id;
+
+			TIMER_END(1, jcr.read_recipe_time);
+
+//			sync_queue_push(restore_recipe_queue, c);
+			free_chunk(c);
+			free(cp);
+		}
+
+		c = new_chunk(0);
+		SET_CHUNK(c, CHUNK_FILE_END);
+		free_chunk(c);
+//		sync_queue_push(restore_recipe_queue, c);
+
+		free_file_recipe_meta(r);
+	}
+
+//	sync_queue_term(restore_recipe_queue);
 	return NULL;
 }
 
