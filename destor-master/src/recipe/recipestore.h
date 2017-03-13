@@ -81,6 +81,8 @@ struct chunkPointer {
 	int32_t size;
 };
 
+int new_backup_version_count;
+
 void init_recipe_store();
 void close_recipe_store();
 
