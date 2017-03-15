@@ -8,6 +8,7 @@
 #include "recipestore.h"
 #include "../jcr.h"
 
+
 static int32_t backup_version_count;
 static sds recipepath;
 
@@ -22,6 +23,7 @@ void init_recipe_store() {
 	if ((fp = fopen(count_fname, "r"))) {
 		/* Read if exists. */
 		fread(&backup_version_count, 4, 1, fp);
+		new_backup_version_count=backup_version_count;
 		fclose(fp);
 	}
 
@@ -402,6 +404,8 @@ void append_n_chunk_pointers(struct backupVersion* b,
 struct fileRecipeMeta* read_next_file_recipe_meta(struct backupVersion* b) {
 
 	static int read_file_num;
+	
+	printf("read_file_num is %d\n",read_file_num );
 
 	assert(read_file_num <= b->number_of_files);
 
@@ -458,9 +462,48 @@ struct chunkPointer* read_next_n_chunk_pointers(struct backupVersion* b, int n,
 
 	read_chunk_num += num;
 	assert(read_chunk_num <= b->number_of_chunks);
+	return cp;
+}
+//gc
+static int read_chunk_num_gc;
+void set_read_chunk_num_gc(){
+	read_chunk_num_gc = 0;
+}
+
+struct chunkPointer* read_next_n_chunk_pointers_gc(struct backupVersion* b, int n,
+		int *k) {
+
+	/* Total number of read chunks. */
+
+	if (read_chunk_num_gc == b->number_of_chunks) {
+		/* It's the stream end. */
+		*k = 0;
+		return NULL;
+	}
+
+	int num = (b->number_of_chunks - read_chunk_num_gc) > n ?
+					n : (b->number_of_chunks - read_chunk_num_gc), i;
+
+	struct chunkPointer *cp = (struct chunkPointer *) malloc(
+			sizeof(struct chunkPointer) * num);
+
+	for (i = 0; i < num; i++) {
+		fread(&(cp[i].fp), sizeof(fingerprint), 1, b->recipe_fp);
+		fread(&(cp[i].id), sizeof(containerid), 1, b->recipe_fp);
+		fread(&(cp[i].size), sizeof(int32_t), 1, b->recipe_fp);
+		/* Ignore segment boundaries */
+		if(cp[i].id == 0 - CHUNK_SEGMENT_START || cp[i].id == 0 - CHUNK_SEGMENT_END)
+			i--;
+	}
+
+	*k = num;
+
+	read_chunk_num_gc += num;
+	assert(read_chunk_num_gc <= b->number_of_chunks);
 
 	return cp;
 }
+
 
 containerid* read_next_n_records(struct backupVersion* b, int n, int *k) {
 	static int end = 0;

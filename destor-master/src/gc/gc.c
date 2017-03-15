@@ -21,7 +21,8 @@ title :mark and sweep for garbage colloction
 #include "../restore.h"
 //extern void* read_recipe_thread_gc(void *arg);
 extern void* read_recipe_thread_gc();
-int number_of_bf_fp=0;
+
+int64_t number_of_bf_fp=0;
 
 static int64_t gc_count=0;
 
@@ -91,20 +92,28 @@ void get_delete_message()
     printf("the collection  size is %ld MB\n", size);
 }
 
+void init_bloom_filter()
+{
+    bf=(char *)malloc(FILTER_SIZE_BYTES*sizeof(char));
+    int j;
+    for(j=0;j<FILTER_SIZE_BYTES;j++) {  
+        bf[j]=0;  
+    } 
 
+}
 
 void mark_weep_gc(int jobid)
 {
 
     init_recipe_store();
-    bf=(char *)malloc(FILTER_SIZE_BYTES*sizeof(char));
-    int j;
-    for(j=0;j<FILTER_SIZE_BYTES;j++) {  
-        bf[j]=0;  
-    }  
+
+    init_bloom_filter();
+
+    number_of_bf_fp=0;
 
     printf("new_backup_version_count is %d\n",new_backup_version_count-1);
     printf("the jobid is%d\n", jobid);
+    printf("the begin number_of_bf_fp  is%ld\n", number_of_bf_fp);
 
     int i;
     printf("%d %d %d\n", new_backup_version_count, i, jobid);
@@ -115,26 +124,30 @@ void mark_weep_gc(int jobid)
             continue;
         }
         //init_container_store();
+        printf("the meddle number_of_bf_fp  is%ld\n", number_of_bf_fp);
         printf("read recipe version is %d \n",i);
         init_gc_jcr(i);
+        printf("jcr.bv num is %d\n",jcr.bv->bv_num);
+        printf("jcr.bv jcr.bv->number_of_files  is %d\n",jcr.bv->number_of_files);
 //        restore_recipe_queue = sync_queue_new(100);
-        if (jcr.bv->deleted!=1)
+     /*   if (jcr.bv->deleted!=1)
         {
- //           pthread_t recipe_t;
- //           pthread_create(&recipe_t, NULL, read_recipe_thread_gc, NULL);
             read_recipe_thread_gc();
-            printf("number_of_bf_fp is %d\n",number_of_bf_fp);
-        }     
+            printf("number_of_bf_fp is %ld\n",number_of_bf_fp); 
+        }  */
+        read_recipe_thread_gc();
+        printf("number_of_bf_fp is %ld\n",number_of_bf_fp);   
     }
-
-    struct backupVersion* bv = open_backup_version(jobid);
+   /* struct backupVersion* bv = open_backup_version(jobid);
     bv->deleted = 1;
     update_backup_version(bv);
-    free_backup_version(bv);
+    free_backup_version(bv);*/
 
     init_kvstore_htable_gc();
 
     get_delete_message();
+
+    Destory_rc_list();
 
     //close_container_store();
     close_recipe_store();
@@ -187,6 +200,7 @@ void init_kvstore_htable_gc(){
                 rc_data->id= get_value(kv);
                 add_to_rc(rc_data);
                 gc_count++;
+                //printf("%d\n", gc_count);
             }
 
             g_hash_table_insert(htable, get_key(kv), kv);

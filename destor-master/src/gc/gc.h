@@ -8,9 +8,9 @@
 typedef unsigned char fingerprint[20];
 typedef int64_t containerid;
 
-char *bf;
+unsigned char *bf;
 
-int number_of_bf_fp;
+int64_t number_of_bf_fp;
 
 struct rc_list{
     containerid id;

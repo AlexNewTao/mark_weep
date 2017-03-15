@@ -111,5 +111,7 @@ int lookup_fingerprint_in_segment_recipe(struct segmentRecipe* sr,
         fingerprint *fp);
 
 struct segmentRecipe* read_next_segment(struct backupVersion *bv);
+void set_read_chunk_num_gc();
+struct chunkPointer* read_next_n_chunk_pointers_gc(struct backupVersion* b, int n, int *k);
 
 #endif /* RECIPESTORE_H_ */
