@@ -5,6 +5,8 @@
 #include "backup.h"
 #include "storage/containerstore.h"
 
+
+
 /* defined in index.c */
 extern struct {
 	/* Requests to the key-value store */
@@ -166,22 +168,45 @@ void do_backup(char *path) {
 	 * 4 * index overhead (4 * int)
 	 * throughput,
 	 */
-	fprintf(fp, "%" PRId32 " %" PRId64 " %" PRId64 " %.4f %.4f %" PRId32 " %" PRId32 " %" PRId32 " %" PRId32" %" PRId32 " %" PRId32" %" PRId32" %.2f\n",
+
+
+	/*
+	 * job id,
+	 * 备份数据数
+	 * 存储的数据量
+	 * 重删率,
+	 * 读时间，读IO,
+	 * chunk时间，chunkIO,
+	 * hash时间,
+	 * 重删时间，
+	 * 重写时间，
+	 * 过滤时间，
+	 * 重删总时间，
+	 */
+
+
+	fprintf(fp, "%" PRId32 " %" PRId64 " %" PRId64 " %.4f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n",
 			jcr.id,
 			jcr.data_size,
 			destor.stored_data_size,
 			jcr.data_size != 0 ?
 					(jcr.data_size - jcr.rewritten_chunk_size - jcr.unique_data_size)/(double) (jcr.data_size)
 					: 0,
-			jcr.data_size != 0 ? (double) (jcr.rewritten_chunk_size) / (double) (jcr.data_size) : 0,
-			jcr.total_container_num,
-			jcr.sparse_container_num,
-			jcr.inherited_sparse_num,
-			index_overhead.lookup_requests,
-			index_overhead.lookup_requests_for_unique,
-			index_overhead.update_requests,
-			index_overhead.read_prefetching_units,
-			(double) jcr.data_size * 1000000 / (1024 * 1024 * jcr.total_time));
+			jcr.read_time / 1000000,
+			//jcr.data_size * 1000000 / jcr.read_time / 1024 / 1024,
+			jcr.chunk_time / 1000000,
+			//jcr.data_size * 1000000 / jcr.chunk_time / 1024 / 1024,
+			jcr.hash_time / 1000000,
+			//jcr.data_size * 1000000 / jcr.hash_time / 1024 / 1024,
+			jcr.dedup_time / 1000000,
+			//jcr.data_size * 1000000 / jcr.dedup_time / 1024 / 1024,
+			jcr.rewrite_time / 1000000,
+			//jcr.data_size * 1000000 / jcr.rewrite_time / 1024 / 1024,
+			jcr.filter_time / 1000000,
+			//jcr.data_size * 1000000 / jcr.filter_time / 1024 / 1024,
+			jcr.write_time / 1000000,
+			//jcr.data_size * 1000000 / jcr.write_time / 1024 / 1024,
+			jcr.total_time / 1000000);
 
 	fclose(fp);
 

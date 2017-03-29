@@ -238,6 +238,8 @@ void update_backup_version(struct backupVersion *b) {
 	fwrite(&b->bv_num, sizeof(b->bv_num), 1, b->metadata_fp);
 	fwrite(&b->deleted, sizeof(b->deleted), 1, b->metadata_fp);
 
+	//printf("2222222%d\n", b->deleted);
+
 	fwrite(&b->number_of_files, sizeof(b->number_of_files), 1, b->metadata_fp);
 	fwrite(&b->number_of_chunks, sizeof(b->number_of_chunks), 1,
 			b->metadata_fp);
@@ -404,10 +406,9 @@ void append_n_chunk_pointers(struct backupVersion* b,
 struct fileRecipeMeta* read_next_file_recipe_meta(struct backupVersion* b) {
 
 	static int read_file_num;
-	
 	printf("read_file_num is %d\n",read_file_num );
 
-	assert(read_file_num <= b->number_of_files);
+	//assert(read_file_num <= b->number_of_files);
 
 	int len;
 	fread(&len, sizeof(len), 1, b->metadata_fp);
